@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Deep Space - Galaxy Journey</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 1000vh;
+        background-color: #010103;
+        color: white;
+        font-family: "Segoe UI", Arial, sans-serif;
+        overflow-x: hidden;
+      }
+      canvas {
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 1;
+      }
+      #ui-content {
+        position: relative;
+        z-index: 10;
+        width: 100%;
+        pointer-events: none;
+      }
+      .spacer {
+        height: 450vh;
+      }
+      #birthday-msg {
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        opacity: 0;
+        transition: opacity 1.5s;
+      }
+      #birthday-msg.visible {
+        opacity: 1;
+      }
+      .card {
+        background: rgba(10, 10, 20, 0.7);
+        padding: 30px;
+        border-radius: 30px;
+        backdrop-filter: blur(15px);
+        border: 1px solid rgba(0, 255, 255, 0.2);
+        cursor: pointer;
+        text-align: center;
+        pointer-events: auto;
+        max-width: 80%;
+      }
+      h1 {
+        font-size: clamp(1.5rem, 8vw, 3.5rem);
+        margin: 0;
+        color: #00ffff;
+        text-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+      }
+      #overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.98);
+        display: none;
+        z-index: 100;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        color: #ffd700;
+        padding: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="ui-content">
+      <div class="spacer"></div>
+      <div id="birthday-msg">
+        <div class="card" id="main-card">
+          <h1>✨ Happy Birthday! ✨</h1>
+          <p>The sector is clear. Click anywhere to scatter the stars.</p>
+        </div>
+      </div>
+      <div class="spacer"></div>
+    </div>
+
+    <div id="overlay" onclick="this.style.display='none'">
+      <h1 style="color: #00ffff">🚀 COSMIC SUCCESS</h1>
+      <p
+        style="
+          font-size: 1.2rem;
+          max-width: 500px;
+          text-align: center;
+          color: white;
+        "
+      >
+        Wishing you a year as vast and wonderful as the galaxy! 💫
+      </p>
+      <p>(Click to resume journey)</p>
+    </div>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+        }
+      }
+    </script>
+
+    <script type="module">
+      import * as THREE from "three";
+
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(
+        75,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        4000
+      );
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      document.body.appendChild(renderer.domElement);
+
+      // --- UTILS: Circular Texture for Nebulas ---
+      function createCircleTexture() {
+        const canvas = document.createElement("canvas");
+        canvas.width = 128;
+        canvas.height = 128;
+        const ctx = canvas.getContext("2d");
+        const gradient = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+        gradient.addColorStop(0, "rgba(255, 255, 255, 1)");
+        gradient.addColorStop(0.2, "rgba(255, 255, 255, 0.5)");
+        gradient.addColorStop(1, "rgba(255, 255, 255, 0)");
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, 128, 128);
+        return new THREE.CanvasTexture(canvas);
+      }
+      const nebulaTexture = createCircleTexture();
+
+      // --- ROCKET ---
+      const rocket = new THREE.Group();
+      const body = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.3, 0.3, 1.5, 16),
+        new THREE.MeshBasicMaterial({ color: 0x999999 })
+      );
+      const nose = new THREE.Mesh(
+        new THREE.ConeGeometry(0.3, 0.6, 16),
+        new THREE.MeshBasicMaterial({ color: 0xaa0000 })
+      );
+      nose.position.y = 1.05;
+      const fireRocket = new THREE.Mesh(
+        new THREE.SphereGeometry(0.3, 12, 12),
+        new THREE.MeshBasicMaterial({ color: 0xff4400 })
+      );
+      fireRocket.position.y = -0.9;
+      rocket.add(body, nose, fireRocket);
+      rocket.position.set(-15, 0, -10);
+      rocket.rotation.z = -Math.PI / 2;
+      scene.add(rocket);
+
+      // --- NEBULAS (Rounded & Glowing) ---
+      const nebulaColors = [0x220033, 0x001133, 0x1a0033, 0x002233];
+      for (let i = 0; i < 20; i++) {
+        const spriteMat = new THREE.SpriteMaterial({
+          map: nebulaTexture,
+          color: nebulaColors[Math.floor(Math.random() * nebulaColors.length)],
+          transparent: true,
+          opacity: 0.4,
+          blending: THREE.AdditiveBlending,
+        });
+        const sprite = new THREE.Sprite(spriteMat);
+        sprite.scale.set(600, 600, 1);
+        sprite.position.set(
+          (Math.random() - 0.5) * 2000,
+          (Math.random() - 0.5) * 2000,
+          -Math.random() * 3000 - 500
+        );
+        scene.add(sprite);
+      }
+
+      // --- SATURNS (Dark but Visible Theme) ---
+      const planets = [];
+      const darkGalaxyTheme = [0x3d2b56, 0x2a3d45, 0x4a3728, 0x1b2735];
+
+      function createSaturn() {
+        const group = new THREE.Group();
+        const color =
+          darkGalaxyTheme[Math.floor(Math.random() * darkGalaxyTheme.length)];
+        const pMesh = new THREE.Mesh(
+          new THREE.SphereGeometry(12, 32, 32),
+          new THREE.MeshBasicMaterial({ color })
+        );
+        group.add(pMesh);
+        const ringGeo = new THREE.RingGeometry(15, 25, 64);
+        const ringMat = new THREE.MeshBasicMaterial({
+          color,
+          side: THREE.DoubleSide,
+          transparent: true,
+          opacity: 0.3,
+        });
+        const ring = new THREE.Mesh(ringGeo, ringMat);
+        ring.rotation.x = Math.PI / 2.2;
+        group.add(ring);
+        group.position.set(
+          (Math.random() - 0.5) * 900,
+          (Math.random() - 0.5) * 700,
+          -2200 - Math.random() * 1000
+        );
+        scene.add(group);
+        planets.push({ mesh: group, speed: 14 + Math.random() * 12 });
+      }
+      for (let i = 0; i < 12; i++) createSaturn();
+
+      // --- HEAVY METEOR SHOWER ---
+      const meteorData = [];
+      const meteorColors = [0xff2200, 0xffaa00, 0xffff00];
+      for (let i = 0; i < 350; i++) {
+        const mGeo = new THREE.BoxGeometry(0.12, 0.12, 8);
+        const mMat = new THREE.MeshBasicMaterial({
+          color: meteorColors[Math.floor(Math.random() * meteorColors.length)],
+        });
+        const meteor = new THREE.Mesh(mGeo, mMat);
+        const resetMeteor = (m) => {
+          m.position.set(
+            (Math.random() - 0.5) * 1000,
+            (Math.random() - 0.5) * 1000,
+            -1800 - Math.random() * 1000
+          );
+        };
+        resetMeteor(meteor);
+        scene.add(meteor);
+        meteorData.push({
+          mesh: meteor,
+          speed: 25 + Math.random() * 40,
+          reset: resetMeteor,
+        });
+      }
+
+      // --- STARS ---
+      const starGeo = new THREE.BufferGeometry();
+      const starPos = [];
+      for (let i = 0; i < 20000; i++)
+        starPos.push(
+          (Math.random() - 0.5) * 4000,
+          (Math.random() - 0.5) * 4000,
+          (Math.random() - 0.5) * 4000
+        );
+      starGeo.setAttribute(
+        "position",
+        new THREE.Float32BufferAttribute(starPos, 3)
+      );
+      const stars = new THREE.Points(
+        starGeo,
+        new THREE.PointsMaterial({ color: 0xffffff, size: 0.4 })
+      );
+      scene.add(stars);
+
+      // --- PARTICLE TEXT ---
+      const pCount = 8500;
+      const pGeo = new THREE.BufferGeometry();
+      const pPos = new Float32Array(pCount * 3);
+      const pVelo = [];
+      const pTargets = [];
+      const finalScatterVelo = [];
+
+      function generateTextTargets() {
+        const textCanvas = document.createElement("canvas");
+        const tCtx = textCanvas.getContext("2d");
+        textCanvas.width = 800;
+        textCanvas.height = 200;
+        const isMobile = window.innerWidth < 768;
+        tCtx.font = "bold 75px Arial";
+        tCtx.fillStyle = "white";
+        tCtx.textAlign = "center";
+        tCtx.fillText("Happy Birthday", 400, 80);
+        tCtx.fillText("Harish", 400, 165);
+        const imgData = tCtx.getImageData(0, 0, 800, 200).data;
+        const pts = [];
+        const scale = isMobile ? 0.025 : 0.045;
+        for (let y = 0; y < 200; y += 2) {
+          for (let x = 0; x < 800; x += 2) {
+            if (imgData[(y * 800 + x) * 4] > 128)
+              pts.push({ x: (x - 400) * scale, y: (100 - y) * scale });
+          }
+        }
+        return pts;
+      }
+
+      let textPoints = generateTextTargets();
+
+      for (let i = 0; i < pCount; i++) {
+        pPos[i * 3] = 0;
+        pPos[i * 3 + 1] = 0;
+        pPos[i * 3 + 2] = 0;
+        const theta = Math.random() * Math.PI * 2,
+          phi = Math.acos(Math.random() * 2 - 1),
+          speed = 0.2 + Math.random() * 0.2;
+        const v = new THREE.Vector3(
+          Math.sin(phi) * Math.cos(theta) * speed,
+          Math.sin(phi) * Math.sin(theta) * speed,
+          Math.cos(phi) * speed
+        );
+        pVelo.push(v);
+        finalScatterVelo.push(v.clone().multiplyScalar(22));
+        const pt = textPoints[i % textPoints.length];
+        pTargets.push(new THREE.Vector3(pt.x, pt.y, 0));
+      }
+
+      pGeo.setAttribute("position", new THREE.BufferAttribute(pPos, 3));
+      const pMat = new THREE.PointsMaterial({
+        color: 0x00ffff,
+        size: 0.16,
+        transparent: true,
+        opacity: 0,
+        blending: THREE.AdditiveBlending,
+      });
+      const textParticles = new THREE.Points(pGeo, pMat);
+      scene.add(textParticles);
+
+      let startTime = Date.now(),
+        exploded = false,
+        scattered = false;
+
+      function handleInteraction() {
+        if (
+          document
+            .getElementById("birthday-msg")
+            .classList.contains("visible") &&
+          !scattered
+        ) {
+          scattered = true;
+          document.getElementById("birthday-msg").style.opacity = "0";
+          setTimeout(() => {
+            document.getElementById("overlay").style.display = "flex";
+          }, 800);
+        }
+      }
+      window.addEventListener("mousedown", handleInteraction);
+      window.addEventListener("touchstart", handleInteraction);
+
+      function animate() {
+        requestAnimationFrame(animate);
+        const elapsed = (Date.now() - startTime) / 1000;
+
+        if (elapsed < 6) {
+          rocket.position.x = -15 + elapsed * 2.5;
+          rocket.position.y = Math.sin(elapsed * 2) * 0.5;
+          fireRocket.scale.setScalar(1 + Math.sin(elapsed * 30) * 0.5);
+        } else if (!exploded) {
+          exploded = true;
+          rocket.visible = false;
+          pMat.opacity = 1;
+        }
+
+        planets.forEach((p) => {
+          if (!exploded) {
+            p.mesh.position.z += p.speed;
+            if (p.mesh.position.z > 200) p.mesh.position.z = -2500;
+          }
+        });
+
+        meteorData.forEach((m) => {
+          m.mesh.position.z += m.speed;
+          if (m.mesh.position.z > 200) m.reset(m.mesh);
+        });
+
+        if (exploded) {
+          const timeSinceExplosion = elapsed - 6;
+          const positions = textParticles.geometry.attributes.position.array;
+          for (let i = 0; i < pCount; i++) {
+            const ix = i * 3,
+              iy = i * 3 + 1,
+              iz = i * 3 + 2;
+            if (scattered) {
+              positions[ix] += finalScatterVelo[i].x;
+              positions[iy] += finalScatterVelo[i].y;
+              positions[iz] += finalScatterVelo[i].z;
+              pMat.opacity -= 0.005;
+            } else if (timeSinceExplosion < 2.0) {
+              positions[ix] += pVelo[i].x;
+              positions[iy] += pVelo[i].y;
+              positions[iz] += pVelo[i].z;
+            } else {
+              const target = pTargets[i];
+              positions[ix] = THREE.MathUtils.lerp(
+                positions[ix],
+                target.x,
+                0.015
+              );
+              positions[iy] = THREE.MathUtils.lerp(
+                positions[iy],
+                target.y,
+                0.015
+              );
+              positions[iz] = THREE.MathUtils.lerp(
+                positions[iz],
+                target.z,
+                0.015
+              );
+              if (timeSinceExplosion > 8)
+                document
+                  .getElementById("birthday-msg")
+                  .classList.add("visible");
+            }
+          }
+          textParticles.geometry.attributes.position.needsUpdate = true;
+        }
+
+        const scroll =
+          window.scrollY / (document.body.scrollHeight - window.innerHeight);
+        camera.position.z = THREE.MathUtils.lerp(
+          camera.position.z,
+          15 - scroll * 1800,
+          0.05
+        );
+        stars.rotation.y += 0.0001;
+        renderer.render(scene, camera);
+      }
+
+      window.addEventListener("resize", () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+      animate();
+    </script>
+  </body>
+</html>
